@@ -7,12 +7,12 @@
 #include <sys/wait.h>
 #include <stdarg.h>
 
-#define THREAD_COUNT	50
+#define THREAD_COUNT	100
 
 #define IS_DEBUG		0
 #define DEBUG(fmt, ...)	if (IS_DEBUG) { fprintf(stdout, fmt, ## __VA_ARGS__); fflush(stdout); }
 
-void* child(void*);
+void* jail(void*);
 int my_func(const char *format, ...);
 
 int main()
@@ -26,7 +26,7 @@ int main()
 	for (i = 0; i < THREAD_COUNT; i++) {
 		uint8_t *arg = malloc(sizeof(*arg));
 		*arg = i;
-		pthread_create(&tid[i], NULL, (void*)&child, arg);
+		pthread_create(&tid[i], NULL, (void*)&jail, arg);
 	}
 
 	for (i = 0; i < THREAD_COUNT; i++) {
@@ -37,14 +37,14 @@ int main()
 	return EXIT_SUCCESS;
 }
 
-void* child(void *arg)
+void* jail(void *arg)
 {
 	uint8_t	id = *((uint8_t*) arg);
 	pid_t	fpid;
 	int		pfd[2];
 
 	ssize_t nbytes;
-	uint8_t len = 8;
+	uint16_t len = 8192;
 	unsigned char *result = (unsigned char*) malloc(sizeof(*result) * 2);
 	*result = '\0';
 	unsigned char *buffer = (unsigned char*) malloc(sizeof(*buffer) * len);
@@ -65,7 +65,7 @@ void* child(void *arg)
 			dup2(fileno(outfh), STDOUT_FILENO);
 
 			// Call the blind function
-			my_func("Hello this is thread %d child written on %d instead of %d-%d-%d\n", id, fileno(outfh), moutfd, STDOUT_FILENO, fileno(stdout));
+			my_func("Hello this is jail #%d written on %d instead of %d-%d-%d\n", id, fileno(outfh), moutfd, STDOUT_FILENO, fileno(stdout));
 
 			dup2(moutfd, STDOUT_FILENO);
 			close(moutfd);
