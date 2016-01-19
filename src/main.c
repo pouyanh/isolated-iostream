@@ -60,6 +60,7 @@ void* child(void *arg)
 		if (0 == fpid) {
 			close(pfd[0]);
 			int moutfd = dup(STDOUT_FILENO);
+			// @TODO: Have file descriptor in memory region
 			FILE *outfh = tmpfile();
 			dup2(fileno(outfh), STDOUT_FILENO);
 
