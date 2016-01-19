@@ -31,7 +31,7 @@ int main()
 
 	for (i = 0; i < THREAD_COUNT; i++) {
 		pthread_join(tid[i], &result);
-		printf("Call %d returning: %s\n", i, (char*)result);
+		printf("Thread %d returning: %s\n", i, (char*)result);
 	}
 
 	return EXIT_SUCCESS;
@@ -118,6 +118,7 @@ int my_func(const char *format, ...)
 	va_end(ap);
 
 	fflush(stdout);
+	sleep(1);
 
 	return result;
 }
