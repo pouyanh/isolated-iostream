@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <stdarg.h>
 
 #define THREAD_COUNT	50
 
@@ -12,6 +13,7 @@
 #define DEBUG(fmt, ...)	if (IS_DEBUG) { fprintf(stdout, fmt, ## __VA_ARGS__); fflush(stdout); }
 
 void* child(void*);
+int my_func(const char *format, ...);
 
 int main()
 {
@@ -25,7 +27,6 @@ int main()
 		uint8_t *arg = malloc(sizeof(*arg));
 		*arg = i;
 		pthread_create(&tid[i], NULL, (void*)&child, arg);
-		// printf("Call %d returning: %s\n", i, child(arg));
 	}
 
 	for (i = 0; i < THREAD_COUNT; i++) {
@@ -62,8 +63,8 @@ void* child(void *arg)
 			FILE *outfh = tmpfile();
 			dup2(fileno(outfh), STDOUT_FILENO);
 
-			fprintf(stdout, "Hello this is thread %d child written on %d instead of %d-%d-%d\n", id, fileno(outfh), moutfd, STDOUT_FILENO, fileno(stdout));
-			fflush(stdout);
+			// Call the blind function
+			my_func("Hello this is thread %d child written on %d instead of %d-%d-%d\n", id, fileno(outfh), moutfd, STDOUT_FILENO, fileno(stdout));
 
 			dup2(moutfd, STDOUT_FILENO);
 			close(moutfd);
@@ -102,5 +103,21 @@ void* child(void *arg)
 	}
 
 	return NULL;
+}
+
+/**
+ *	Poor function which is printing on stdout
+ */
+int my_func(const char *format, ...)
+{
+	va_list ap;
+
+	va_start(ap, format);
+	int result = vfprintf(stdout, format, ap);
+	va_end(ap);
+
+	fflush(stdout);
+
+	return result;
 }
 
