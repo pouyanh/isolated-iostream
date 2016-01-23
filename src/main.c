@@ -43,12 +43,6 @@ void* jail(void *arg)
 	pid_t	fpid;
 	int		pfd[2];
 
-	ssize_t nbytes;
-	uint16_t len = 8192;
-	unsigned char *result = (unsigned char*) malloc(sizeof(*result) * 2);
-	*result = '\0';
-	unsigned char *buffer = (unsigned char*) malloc(sizeof(*buffer) * len);
-
 	DEBUG("Thread %d\n", id);
 
 	pipe(pfd);
@@ -61,32 +55,24 @@ void* jail(void *arg)
 			close(pfd[0]);
 			int moutfd = dup(STDOUT_FILENO);
 			// @TODO: Have file descriptor in memory region
-			FILE *outfh = tmpfile();
-			dup2(fileno(outfh), STDOUT_FILENO);
+			dup2(pfd[1], STDOUT_FILENO);
 
 			// Call the blind function
-			my_func("Hello this is jail #%d written on %d instead of %d-%d-%d\n", id, fileno(outfh), moutfd, STDOUT_FILENO, fileno(stdout));
+			my_func("Hello this is jail #%d written on %d instead of %d-%d-%d\n", pfd[1], id, moutfd, STDOUT_FILENO, fileno(stdout));
 
 			dup2(moutfd, STDOUT_FILENO);
 			close(moutfd);
-
-			fseek(outfh, 0, SEEK_SET);
-			while (!feof(outfh)) {
-				nbytes = fread(buffer, 1, len, outfh);
-
-				if (read > 0) {
-					result = realloc(result, (sizeof(*result) * (strlen(result) + 1)) + nbytes);
-					strncat(result, buffer, nbytes);
-				}
-			}
-			fclose(outfh);
-
-			write(pfd[1], result, sizeof(*result) * (strlen(result) + 1));
 			close(pfd[1]);
 
 			exit (EXIT_SUCCESS);
 		} else {
 			close(pfd[1]);
+			
+			ssize_t nbytes;
+			uint16_t len = 8192;
+			unsigned char *result = (unsigned char*) malloc(sizeof(*result) * 2);
+			*result = '\0';
+			unsigned char *buffer = (unsigned char*) malloc(sizeof(*buffer) * len);
 
 			DEBUG("Parent Process (%d)\n", id);
 
@@ -95,7 +81,8 @@ void* jail(void *arg)
 				strncat(result, buffer, nbytes);
 			}
 
-			// wait(NULL);
+			int state;
+			wait(&state);
 
 			return (void*)result;
 		}
@@ -122,4 +109,3 @@ int my_func(const char *format, ...)
 
 	return result;
 }
-
